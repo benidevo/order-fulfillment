@@ -1,0 +1,58 @@
+services:
+  zookeeper:
+    image: bitnami/zookeeper:3.9
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      - ALLOW_ANONYMOUS_LOGIN=yes
+    volumes:
+      - zookeeper-data:/bitnami/zookeeper
+    networks:
+      - order-network
+    restart: unless-stopped
+
+  kafka:
+    image: bitnami/kafka:3.9.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
+      - ALLOW_PLAINTEXT_LISTENER=yes
+    networks:
+      - order-network
+    volumes:
+      - kafka-data:/bitnami/kafka
+    restart: unless-stopped
+    depends_on:
+      - zookeeper
+
+  command:
+    build:
+      context: .
+      dockerfile: docker/command/Dockerfile
+    container_name: command-service
+    env_file:
+      - ./command/.env
+    ports:
+      - "8080:8080"
+    networks:
+      - order-network
+    volumes:
+      - ./command:/app
+      - ~/.m2:/root/.m2
+    restart: unless-stopped
+    depends_on:
+      - kafka
+
+
+networks:
+  order-network:
+    driver: bridge
+
+
+volumes:
+  zookeeper-data:
+  kafka-data:
