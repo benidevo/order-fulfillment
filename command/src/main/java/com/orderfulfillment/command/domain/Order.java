@@ -5,6 +5,8 @@ import com.orderfulfillment.command.events.impl.OrderEvents;
 import com.orderfulfillment.command.events.payloads.OrderCancelledPayload;
 import com.orderfulfillment.command.events.payloads.OrderCreatedPayload;
 import com.orderfulfillment.command.events.payloads.OrderStatusUpdatedPayload;
+import com.orderfulfillment.command.exceptions.domain.CancelledOrderModificationException;
+import com.orderfulfillment.command.exceptions.domain.OrderCannotBeCancelledException;
 import com.orderfulfillment.command.utils.Constants;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,20 +85,14 @@ public class Order extends AggregateRoot {
   /**
    * Updates the status of the order.
    *
-   * <p>This method enforces the following business rules:
-   *
-   * <ul>
-   *   <li>An order that has been cancelled cannot be updated
-   *   <li>Only certain status transitions are allowed
-   * </ul>
+   * <p>This method ensures that an order that has been cancelled cannot be modified.
    *
    * @param newStatus the new status to set
-   * @throws IllegalStateException if the order has been cancelled or if the status transition is
-   *     invalid
+   * @throws CancelledOrderModificationException if the order has been cancelled
    */
   public void updateStatus(OrderStatus newStatus) {
     if (this.status == OrderStatus.CANCELLED) {
-      throw new IllegalStateException("Cannot update a cancelled order");
+      throw new CancelledOrderModificationException(getId());
     }
 
     if (!isValidStatusTransition(newStatus)) {
@@ -114,20 +110,16 @@ public class Order extends AggregateRoot {
   /**
    * Cancels the order.
    *
-   * <p>This method enforces the following business rules:
+   * <p>This method ensures that an order that has been shipped or delivered cannot be cancelled
    *
-   * <ul>
-   *   <li>An order that has been shipped or delivered cannot be cancelled
-   * </ul>
-   *
-   * @throws IllegalStateException if the order has been shipped or delivered
+   * @throws OrderCannotBeCancelledException if the order cannot be cancelled
    */
   public void cancel() {
     if (status == OrderStatus.SHIPPED
         || status == OrderStatus.DELIVERED
         || status == OrderStatus.PARTIALLY_SHIPPED
         || status == OrderStatus.PARTIALLY_DELIVERED) {
-      throw new IllegalStateException("Cannot cancel an order that has been shipped or delivered");
+      throw new OrderCannotBeCancelledException(getId(), status.name());
     }
 
     OrderCancelledPayload payload = new OrderCancelledPayload(getId());

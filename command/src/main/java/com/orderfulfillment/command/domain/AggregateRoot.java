@@ -50,11 +50,11 @@ public abstract class AggregateRoot {
   }
 
   /**
-   * Applies an event to this aggregate and increments its version. The event is also added to
-   * uncommitted changes if it is new.
+   * Applies an event to this aggregate and increments its version. The event is not added to
+   * uncommitted changes.
    *
    * @param event the event to apply
-   * @param isNew whether the event is new (to be added to uncommitted changes)
+   * @param isNew whether the event is new (should be added to uncommitted changes)
    */
   protected void applyChange(Event<?> event, boolean isNew) {
     String eventType = event.getEventType();
@@ -68,8 +68,9 @@ public abstract class AggregateRoot {
 
     if (isNew) {
       uncommittedChanges.add(event);
+    } else {
+      version = event.getVersion() + 1;
     }
-    version++;
   }
 
   /**
@@ -83,11 +84,13 @@ public abstract class AggregateRoot {
   }
 
   /**
-   * Rehydrates this aggregate from a list of historical events.
+   * Loads the aggregate state from a list of events. This is typically used when reconstructing the
+   * aggregate from the event store.
    *
-   * @param events the list of historical events
+   * @param events the list of events to load
    */
   public void loadFromHistory(List<Event<?>> events) {
     events.forEach(e -> applyChange(e, false));
+    version = events.size();
   }
 }

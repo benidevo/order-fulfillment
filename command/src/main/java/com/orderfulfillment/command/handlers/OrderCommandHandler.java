@@ -36,10 +36,18 @@ public interface OrderCommandHandler {
   /**
    * Handles a command to cancel an order.
    *
-   * <p>Converts the cancellation command into an OrderCancelledEvent with the appropriate payload
-   * containing the order ID.
+   * <p>Converts the cancel order command into an OrderCancelledEvent. This process involves finding
+   * the existing order by ID, applying domain-specific cancellation rules, and persisting the
+   * cancellation event if allowed by business rules.
+   *
+   * <p>An order can only be cancelled if it's in certain states (e.g., not already shipped or
+   * delivered).
    *
    * @param command the command containing the order ID to be cancelled
+   * @throws com.orderfulfillment.command.exceptions.domain.OrderNotFoundException if the specified
+   *     order doesn't exist
+   * @throws com.orderfulfillment.command.exceptions.domain.OrderCannotBeCancelledException if
+   *     business rules prevent the order from being cancelled
    */
   void handle(CancelOrderCommand command);
 }

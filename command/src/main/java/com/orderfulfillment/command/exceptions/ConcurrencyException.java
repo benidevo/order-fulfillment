@@ -9,11 +9,29 @@ package com.orderfulfillment.command.exceptions;
  */
 public class ConcurrencyException extends RuntimeException {
 
-  public ConcurrencyException(String message) {
-    super(message);
+  private final String aggregateId;
+  private final long expectedVersion;
+  private final long actualVersion;
+
+  public ConcurrencyException(String aggregateId, long expectedVersion, long actualVersion) {
+    super(
+        String.format(
+            "Concurrency conflict for aggregate %s: expected version %d, but found %d",
+            aggregateId, expectedVersion, actualVersion));
+    this.aggregateId = aggregateId;
+    this.expectedVersion = expectedVersion;
+    this.actualVersion = actualVersion;
   }
 
-  public ConcurrencyException(String message, Throwable cause) {
-    super(message, cause);
+  public String getAggregateId() {
+    return aggregateId;
+  }
+
+  public long getExpectedVersion() {
+    return expectedVersion;
+  }
+
+  public long getActualVersion() {
+    return actualVersion;
   }
 }

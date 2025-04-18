@@ -2,35 +2,30 @@ package com.orderfulfillment.command.repositories;
 
 import com.orderfulfillment.command.domain.Order;
 import com.orderfulfillment.command.exceptions.ConcurrencyException;
+import com.orderfulfillment.command.exceptions.domain.OrderNotFoundException;
 
 /** Repository interface for Order aggregate operations using event sourcing. */
 public interface OrderRepository {
   /**
-   * Finds an Order by its unique identifier.
+   * Retrieves an Order by its unique identifier.
    *
-   * <p>Retrieves all events for the specified order ID from the event store and reconstructs the
-   * Order's current state by replaying these events.
+   * <p>This method reconstructs the Order's current state by retrieving all associated events from
+   * the event store and replaying them in sequence.
    *
    * @param orderId the unique identifier of the order to retrieve
-   * @return the reconstructed Order or null if no events exist for the given ID
+   * @return the reconstructed Order with its current state
+   * @throws OrderNotFoundException if no order exists with the given ID
    */
   Order findById(String orderId);
 
   /**
-   * Saves an Order by persisting its uncommitted events.
+   * Saves an Order aggregate to the event store.
    *
-   * <p>This method:
+   * <p>This method handles optimistic concurrency control by checking the version of the Order
+   * before saving.
    *
-   * <ul>
-   *   <li>Validates the Order's version to prevent concurrency conflicts
-   *   <li>Persists all uncommitted events to the event store
-   *   <li>Publishes events to the event bus (e.g., Kafka)
-   *   <li>Marks the events as committed in the Order aggregate
-   * </ul>
-   *
-   * @param order the Order aggregate with uncommitted events to save
-   * @throws ConcurrencyException if the Order's version doesn't match the expected version in the
-   *     event store
+   * @param order the Order aggregate to save
+   * @throws ConcurrencyException if a concurrency conflict occurs during save
    */
   void save(Order order);
 }
