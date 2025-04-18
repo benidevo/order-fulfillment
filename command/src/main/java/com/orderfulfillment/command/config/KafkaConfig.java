@@ -1,5 +1,6 @@
 package com.orderfulfillment.command.config;
 
+import com.orderfulfillment.command.utils.Constants;
 import java.util.HashMap;
 import java.util.Map;
 import org.apache.kafka.clients.admin.NewTopic;
@@ -19,7 +20,7 @@ import org.springframework.kafka.support.serializer.JsonSerializer;
 public class KafkaConfig {
   @Bean
   public NewTopic orderEventsTopic() {
-    return TopicBuilder.name("order-events").partitions(3).replicas(1).build();
+    return TopicBuilder.name(Constants.ORDER_EVENTS_TOPIC).partitions(3).replicas(1).build();
   }
 
   @Bean
