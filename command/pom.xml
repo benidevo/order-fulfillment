@@ -8,11 +8,11 @@
 		<version>3.4.4</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
-	<groupId>com.ordermanager</groupId>
+	<groupId>com.orderfulfillment</groupId>
 	<artifactId>order-command-service</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<name>order-command-service</name>
-	<description>Command service for order management using CQRS and Event Sourcing patterns</description>
+	<description>Command service for order fulfillment using CQRS and Event Sourcing patterns</description>
 	<url/>
 	<licenses>
 		<license/>

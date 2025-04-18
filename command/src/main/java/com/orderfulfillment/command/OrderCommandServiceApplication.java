@@ -1,4 +1,4 @@
-package com.ordermanager.command;
+package com.orderfulfillment.command;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
