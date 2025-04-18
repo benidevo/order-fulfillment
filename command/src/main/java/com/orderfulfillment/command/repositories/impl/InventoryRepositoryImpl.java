@@ -3,13 +3,13 @@ package com.orderfulfillment.command.repositories.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderfulfillment.command.domain.EventMessage;
-import com.orderfulfillment.command.domain.Order;
+import com.orderfulfillment.command.domain.InventoryItem;
 import com.orderfulfillment.command.events.Event;
 import com.orderfulfillment.command.exceptions.ConcurrencyException;
 import com.orderfulfillment.command.exceptions.EventPublishingException;
 import com.orderfulfillment.command.exceptions.EventSerializationException;
-import com.orderfulfillment.command.exceptions.domain.OrderNotFoundException;
-import com.orderfulfillment.command.repositories.OrderRepository;
+import com.orderfulfillment.command.exceptions.domain.ProductNotFoundException;
+import com.orderfulfillment.command.repositories.InventoryRepository;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -22,76 +22,92 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * Implementation of the OrderRepository interface for storing and retrieving Order aggregates using
- * an event-sourcing pattern.
+ * Implementation of the InventoryRepository interface for storing and retrieving InventoryItem
+ * aggregates using an event-sourcing pattern.
  *
  * <p>This repository maintains an in-memory event store while also publishing events to Kafka to
  * ensure events are durably stored. It handles optimistic concurrency control by checking version
  * numbers before saving changes to prevent conflicts when multiple processes attempt to modify the
- * same order simultaneously.
- *
- * @see OrderRepository
- * @see Order
- * @see Event
+ * same inventory simultaneously.
  */
 @Slf4j
 @Repository
-public class OrderRepositoryImpl implements OrderRepository {
+public class InventoryRepositoryImpl implements InventoryRepository {
   private final KafkaTemplate<String, Object> kafkaTemplate;
   private final NewTopic topic;
   private final ObjectMapper objectMapper;
   private final Map<String, List<Event<?>>> eventStore = new HashMap<>();
+  private final Map<String, String> productToInventoryMap = new HashMap<>();
 
-  public OrderRepositoryImpl(
+  public InventoryRepositoryImpl(
       KafkaTemplate<String, Object> kafkaTemplate,
-      @Qualifier("orderEventsTopic") NewTopic topic,
+      @Qualifier("inventoryEventsTopic") NewTopic inventoryTopic,
       ObjectMapper objectMapper) {
     this.kafkaTemplate = kafkaTemplate;
-    this.topic = topic;
+    this.topic = inventoryTopic;
     this.objectMapper = objectMapper;
   }
 
-  public Order findById(String orderId) {
-    List<Event<?>> events = eventStore.getOrDefault(orderId, new ArrayList<>());
-    if (events.isEmpty()) {
-      throw new OrderNotFoundException(orderId);
+  @Override
+  public InventoryItem findByProductId(String productId) {
+    String inventoryId = productToInventoryMap.get(productId);
+    if (inventoryId == null) {
+      throw new ProductNotFoundException(productId);
     }
 
-    Order order = new Order();
-    order.loadFromHistory(events);
-    return order;
+    return findById(inventoryId);
   }
 
-  public void save(Order order) {
-    List<Event<?>> currentEvents = eventStore.getOrDefault(order.getId(), new ArrayList<>());
-    long expectedVersion = currentEvents.size();
-
-    if (order.getVersion() != expectedVersion && !currentEvents.isEmpty()) {
-      log.error(
-          "Concurrency conflict for order {}: expected version {}, but found {}",
-          order.getId(),
-          expectedVersion,
-          order.getVersion());
-      throw new ConcurrencyException(order.getId(), expectedVersion, order.getVersion());
+  @Override
+  public InventoryItem findById(String inventoryId) {
+    List<Event<?>> events = eventStore.getOrDefault(inventoryId, new ArrayList<>());
+    if (events.isEmpty()) {
+      throw new ProductNotFoundException("No inventory found with ID: " + inventoryId);
     }
 
-    List<Event<?>> uncommittedEvents = order.getUncommittedChanges();
+    InventoryItem inventoryItem = new InventoryItem();
+    inventoryItem.loadFromHistory(events);
+    productToInventoryMap.put(inventoryItem.getProductId(), inventoryId);
+
+    return inventoryItem;
+  }
+
+  @Override
+  public void save(InventoryItem inventoryItem) {
+    List<Event<?>> currentEvents =
+        eventStore.getOrDefault(inventoryItem.getId(), new ArrayList<>());
+    long expectedVersion = currentEvents.size();
+
+    if (inventoryItem.getVersion() != expectedVersion && !currentEvents.isEmpty()) {
+      log.error(
+          "Concurrency conflict for inventory {}: expected version {}, but found {}",
+          inventoryItem.getId(),
+          expectedVersion,
+          inventoryItem.getVersion());
+      throw new ConcurrencyException(
+          inventoryItem.getId(), expectedVersion, inventoryItem.getVersion());
+    }
+
+    List<Event<?>> uncommittedEvents = inventoryItem.getUncommittedChanges();
     List<CompletableFuture<?>> futures = new ArrayList<>();
 
     for (Event<?> event : uncommittedEvents) {
       try {
         EventMessage message = createEventMessage(event, event.getPayload());
 
-        log.info("Publishing event {} to topic {}", event.getEventId(), topic.name());
+        log.info("Publishing inventory event {} to topic {}", event.getEventId(), topic.name());
         futures.add(
             kafkaTemplate
                 .send(topic.name(), event.getAggregateId(), message)
                 .toCompletableFuture());
 
-        if (!eventStore.containsKey(order.getId())) {
-          eventStore.put(order.getId(), new ArrayList<>());
+        if (!eventStore.containsKey(inventoryItem.getId())) {
+          eventStore.put(inventoryItem.getId(), new ArrayList<>());
         }
-        eventStore.get(order.getId()).add(event);
+        eventStore.get(inventoryItem.getId()).add(event);
+
+        productToInventoryMap.put(inventoryItem.getProductId(), inventoryItem.getId());
+
       } catch (Exception e) {
         throw new EventPublishingException(event.getEventId(), e);
       }
@@ -100,13 +116,18 @@ public class OrderRepositoryImpl implements OrderRepository {
     try {
       CompletableFuture.allOf(futures.toArray(new CompletableFuture[0])).join();
     } catch (Exception e) {
-      throw new EventPublishingException("Multiple events", e);
+      throw new EventPublishingException("Multiple inventory events", e);
     }
 
-    log.info("Order {} saved with {} events", order.getId(), uncommittedEvents.size());
+    log.info("Inventory {} saved with {} events", inventoryItem.getId(), uncommittedEvents.size());
 
-    order.setVersion(currentEvents.size() + uncommittedEvents.size());
-    order.markChangesAsCommitted();
+    inventoryItem.setVersion(currentEvents.size() + uncommittedEvents.size());
+    inventoryItem.markChangesAsCommitted();
+  }
+
+  @Override
+  public boolean existsByProductId(String productId) {
+    return productToInventoryMap.containsKey(productId);
   }
 
   /**
@@ -115,7 +136,7 @@ public class OrderRepositoryImpl implements OrderRepository {
    * <p>This method converts an event object to a serialized EventMessage by serializing the event
    * payload to JSON format.
    *
-   * @param event The domain event containing metadata such as ID, type, and aggregate information
+   * @param event The domain event containing metadata
    * @param payload The payload object to be serialized into JSON
    * @return An EventMessage containing all event metadata and the serialized payload
    * @throws EventSerializationException if serialization fails

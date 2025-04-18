@@ -30,6 +30,11 @@ public class KafkaConfig {
   }
 
   @Bean
+  public NewTopic inventoryEventsTopic() {
+    return TopicBuilder.name(Constants.INVENTORY_EVENTS_TOPIC).partitions(3).replicas(1).build();
+  }
+
+  @Bean
   public ProducerFactory<String, Object> producerFactory() {
     Map<String, Object> configProps = new HashMap<>();
     configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");

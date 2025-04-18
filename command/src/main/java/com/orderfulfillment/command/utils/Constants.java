@@ -5,12 +5,17 @@ public class Constants {
   public static final String ORDER_EVENTS_TOPIC = "order-events";
   public static final String INVENTORY_EVENTS_TOPIC = "inventory-events";
 
-  // Event names
+  // Order event names
   public static final String ORDER_CREATED_EVENT = "OrderCreated";
   public static final String ORDER_STATUS_UPDATED_EVENT = "OrderStatusUpdated";
   public static final String ORDER_CANCELED_EVENT = "OrderCanceled";
   public static final String ORDER_SHIPPED_EVENT = "OrderShipped";
   public static final String ORDER_DELIVERED_EVENT = "OrderDelivered";
+
+  // Inventory event names
+  public static final String INVENTORY_UPDATED_EVENT = "InventoryUpdated";
+  public static final String INVENTORY_ALLOCATED_EVENT = "InventoryAllocated";
+  public static final String INVENTORY_RETURNED_EVENT = "InventoryReturned";
 
   // Event types
   public static final String EVENT_TYPE_ORDER = "OrderEvent";

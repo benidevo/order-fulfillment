@@ -8,7 +8,6 @@ import com.orderfulfillment.command.utils.Constants;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-// Event factory class with static methods
 /**
  * Utility class providing factory methods to create Order-related events.
  *
@@ -43,7 +42,7 @@ public class OrderEvents {
         UUID.randomUUID().toString(),
         Constants.ORDER_CREATED_EVENT,
         orderId,
-        "Order",
+        Constants.AGGREGATE_TYPE_ORDER,
         LocalDateTime.now(),
         version,
         payload);
@@ -63,7 +62,7 @@ public class OrderEvents {
         UUID.randomUUID().toString(),
         Constants.ORDER_CANCELED_EVENT,
         orderId,
-        "Order",
+        Constants.AGGREGATE_TYPE_ORDER,
         LocalDateTime.now(),
         version,
         payload);
@@ -83,7 +82,7 @@ public class OrderEvents {
         UUID.randomUUID().toString(),
         Constants.ORDER_STATUS_UPDATED_EVENT,
         orderId,
-        "Order",
+        Constants.AGGREGATE_TYPE_ORDER,
         LocalDateTime.now(),
         version,
         payload);

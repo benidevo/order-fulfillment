@@ -13,7 +13,9 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -295,6 +297,84 @@ public class GlobalExceptionHandler {
             .build();
 
     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+  }
+
+  /**
+   * Handles HTTP request method not supported exceptions.
+   *
+   * <p>This method captures cases where an unsupported HTTP method is used, logs the error message,
+   * and constructs a response entity indicating the unsupported method.
+   *
+   * @param ex the exception indicating an unsupported HTTP method
+   * @return a {@link ResponseEntity} with an {@link ErrorResponseDto} indicating the unsupported
+   *     method
+   */
+  @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+  public ResponseEntity<ErrorResponseDto> handleMethodNotSupported(
+      HttpRequestMethodNotSupportedException ex) {
+    log.warn("Method not supported: {}", ex.getMessage());
+
+    ErrorResponseDto response =
+        ErrorResponseDto.builder()
+            .success(false)
+            .error("METHOD_NOT_SUPPORTED")
+            .message(ex.getMessage())
+            .details(new HashMap<>())
+            .build();
+
+    return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(response);
+  }
+
+  /**
+   * Handles HTTP message not readable exceptions.
+   *
+   * <p>This method captures cases where the HTTP message cannot be read, logs the error message,
+   * and constructs a response entity indicating the error.
+   *
+   * @param ex the exception indicating an unreadable HTTP message
+   * @return a {@link ResponseEntity} with an {@link ErrorResponseDto} indicating the unreadable
+   *     message
+   */
+  @ExceptionHandler(HttpMessageNotReadableException.class)
+  public ResponseEntity<ErrorResponseDto> handleHttpMessageNotReadable(
+      HttpMessageNotReadableException ex) {
+    log.warn("HTTP message not readable: {}", ex.getMessage());
+
+    ErrorResponseDto response =
+        ErrorResponseDto.builder()
+            .success(false)
+            .error("BAD_REQUEST")
+            .message("Malformed request body")
+            .details(new HashMap<>())
+            .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+  }
+
+  /**
+   * Handles illegal argument exceptions.
+   *
+   * <p>This method captures cases where an illegal argument is passed, logs the error message, and
+   * constructs a response entity indicating the illegal argument.
+   *
+   * @param ex the exception indicating an illegal argument
+   * @return a {@link ResponseEntity} with an {@link ErrorResponseDto} indicating the illegal
+   *     argument
+   */
+  @ExceptionHandler(IllegalArgumentException.class)
+  public ResponseEntity<ErrorResponseDto> handleIllegalArgumentException(
+      IllegalArgumentException ex) {
+    log.warn("Illegal argument: {}", ex.getMessage());
+
+    ErrorResponseDto response =
+        ErrorResponseDto.builder()
+            .success(false)
+            .error("BAD_REQUEST")
+            .message(ex.getMessage())
+            .details(new HashMap<>())
+            .build();
+
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
   }
 
   /**
