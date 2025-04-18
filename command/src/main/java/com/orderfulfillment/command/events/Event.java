@@ -1,6 +1,7 @@
 package com.orderfulfillment.command.events;
 
 import com.orderfulfillment.command.events.impl.BaseEvent;
+import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,7 +13,7 @@ import java.util.UUID;
  *
  * @param <T> The type of the event payload
  */
-public interface Event<T> {
+public interface Event<T> extends Serializable {
   String getEventId();
 
   String getEventType();

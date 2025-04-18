@@ -29,6 +29,19 @@ services:
     depends_on:
       - zookeeper
 
+  kafdrop:
+    image: obsidiandynamics/kafdrop:4.1.0
+    container_name: kafdrop
+    ports:
+      - "9000:9000"
+    environment:
+      - KAFKA_BROKERCONNECT=kafka:9092
+      - JVM_OPTS=-Xms32M -Xmx64M
+    depends_on:
+      - kafka
+    networks:
+      - order-network
+
   command:
     build:
       context: .
