@@ -1,11 +1,16 @@
 package com.orderfulfillment.command.handlers.impl;
 
+import com.orderfulfillment.command.commands.AllocateInventoryCommand;
 import com.orderfulfillment.command.commands.CancelOrderCommand;
 import com.orderfulfillment.command.commands.CreateOrderCommand;
+import com.orderfulfillment.command.commands.ReturnInventoryCommand;
 import com.orderfulfillment.command.commands.UpdateOrderStatusCommand;
 import com.orderfulfillment.command.domain.Order;
+import com.orderfulfillment.command.domain.OrderItem;
 import com.orderfulfillment.command.exceptions.domain.DomainRuleViolationException;
+import com.orderfulfillment.command.exceptions.domain.InsufficientInventoryException;
 import com.orderfulfillment.command.exceptions.domain.OrderNotFoundException;
+import com.orderfulfillment.command.handlers.InventoryCommandHandler;
 import com.orderfulfillment.command.handlers.OrderCommandHandler;
 import com.orderfulfillment.command.repositories.OrderRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -15,9 +20,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class OrderCommandHandlerImpl implements OrderCommandHandler {
   private final OrderRepository orderRepository;
+  private final InventoryCommandHandler inventoryCommandHandler;
 
-  public OrderCommandHandlerImpl(OrderRepository orderRepository) {
+  public OrderCommandHandlerImpl(
+      OrderRepository orderRepository, InventoryCommandHandler inventoryCommandHandler) {
     this.orderRepository = orderRepository;
+    this.inventoryCommandHandler = inventoryCommandHandler;
   }
 
   @Override
@@ -34,6 +42,29 @@ public class OrderCommandHandlerImpl implements OrderCommandHandler {
 
     orderRepository.save(order);
     log.info("Order created with ID: {}", order.getId());
+
+    for (OrderItem item : command.items()) {
+      try {
+        inventoryCommandHandler.handle(
+            AllocateInventoryCommand.builder()
+                .productId(item.getProductId())
+                .orderId(order.getId())
+                .quantity(item.getQuantity())
+                .build());
+
+        log.info(
+            "Allocated {} units of product {} to order {}",
+            item.getQuantity(),
+            item.getProductId(),
+            order.getId());
+      } catch (InsufficientInventoryException e) {
+        log.warn(
+            "Insufficient inventory for product {}: requested {}, available {}",
+            e.getProductId(),
+            e.getRequested(),
+            e.getAvailable());
+      }
+    }
   }
 
   @Override
@@ -74,6 +105,26 @@ public class OrderCommandHandlerImpl implements OrderCommandHandler {
       order.cancel();
       orderRepository.save(order);
       log.info("Order cancelled: {}", command.orderId());
+
+      for (OrderItem item : order.getItems()) {
+        try {
+          inventoryCommandHandler.handle(
+              ReturnInventoryCommand.builder()
+                  .productId(item.getProductId())
+                  .orderId(order.getId())
+                  .quantity(item.getQuantity())
+                  .build());
+
+          log.info(
+              "Returned {} units of product {} from cancelled order {}",
+              item.getQuantity(),
+              item.getProductId(),
+              order.getId());
+        } catch (Exception e) {
+          log.error(
+              "Error returning inventory for product {}: {}", item.getProductId(), e.getMessage());
+        }
+      }
     } catch (DomainRuleViolationException e) {
       log.error("Domain rule violation when cancelling order: {}", e.getMessage());
       throw e;
