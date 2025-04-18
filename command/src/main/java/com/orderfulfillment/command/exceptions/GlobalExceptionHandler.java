@@ -1,5 +1,6 @@
 package com.orderfulfillment.command.exceptions;
 
+import com.orderfulfillment.command.api.dtos.ValidationErrorDto;
 import java.util.HashMap;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -9,11 +10,18 @@ import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.orderfulfillment.command.dtos.ValidationErrorDto;
-
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+  /**
+   * Handles validation exceptions thrown by the Spring framework.
+   *
+   * <p>This method captures validation errors from incoming requests, logs the error message, and
+   * constructs a response entity containing the validation errors in a structured format.
+   *
+   * @param ex the exception containing validation errors
+   * @return a {@link ResponseEntity} with a {@link ValidationErrorDto} containing the errors
+   */
   @ExceptionHandler(MethodArgumentNotValidException.class)
   public ResponseEntity<ValidationErrorDto> handleValidationException(
       MethodArgumentNotValidException ex) {
@@ -32,6 +40,16 @@ public class GlobalExceptionHandler {
     return ResponseEntity.badRequest().body(response);
   }
 
+  /**
+   * Handles missing servlet request parameter exceptions.
+   *
+   * <p>This method captures cases where required parameters are missing from the request, logs the
+   * error message, and constructs a response entity indicating the missing parameter.
+   *
+   * @param ex the exception indicating a missing request parameter
+   * @return a {@link ResponseEntity} with a {@link ValidationErrorDto} indicating the missing
+   *     parameter
+   */
   @ExceptionHandler(MissingServletRequestParameterException.class)
   public ResponseEntity<ValidationErrorDto> handleMissingParams(
       MissingServletRequestParameterException ex) {

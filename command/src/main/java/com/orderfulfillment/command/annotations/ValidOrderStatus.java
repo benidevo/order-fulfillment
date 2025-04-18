@@ -1,4 +1,4 @@
-package com.orderfulfillment.command.validators;
+package com.orderfulfillment.command.annotations;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.PARAMETER;
@@ -11,7 +11,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 @Documented
-@Constraint(validatedBy = com.orderfulfillment.command.validators.impl.OrderStatusValidator.class)
+@Constraint(validatedBy = com.orderfulfillment.command.annotations.impl.OrderStatusValidator.class)
 @Target({FIELD, PARAMETER})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface ValidOrderStatus {

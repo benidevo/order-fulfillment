@@ -1,4 +1,4 @@
-package com.ordermanager.command;
+package com.orderfulfillment.command;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
