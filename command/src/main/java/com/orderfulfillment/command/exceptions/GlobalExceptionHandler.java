@@ -60,4 +60,21 @@ public class GlobalExceptionHandler {
         ValidationErrorDto.builder().success(false).errors(errors).build();
     return ResponseEntity.badRequest().body(response);
   }
+
+  /**
+   * Handles any other exceptions that may occur in the application.
+   *
+   * <p>This method captures general exceptions, logs the error message, and constructs a response
+   * entity indicating an internal server error.
+   *
+   * @param ex the exception that occurred
+   * @return a {@link ResponseEntity} indicating an internal server error
+   */
+  @ExceptionHandler(Exception.class)
+  public ResponseEntity<ValidationErrorDto> handleGeneralException(Exception ex) {
+    log.error("Internal server error: {}", ex.getMessage());
+    ValidationErrorDto response =
+        ValidationErrorDto.builder().success(false).errors(new HashMap<>()).build();
+    return ResponseEntity.internalServerError().body(response);
+  }
 }

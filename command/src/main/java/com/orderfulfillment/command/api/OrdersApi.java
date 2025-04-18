@@ -10,6 +10,7 @@ import com.orderfulfillment.command.commands.UpdateOrderStatusCommand;
 import com.orderfulfillment.command.domain.Address;
 import com.orderfulfillment.command.domain.Money;
 import com.orderfulfillment.command.domain.OrderItem;
+import com.orderfulfillment.command.handlers.OrderCommandHandler;
 import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.List;
@@ -28,6 +29,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping(value = "/api/v1/orders")
 public class OrdersApi {
+  private final OrderCommandHandler orderCommandHandler;
+
+  public OrdersApi(OrderCommandHandler orderCommandHandler) {
+    this.orderCommandHandler = orderCommandHandler;
+  }
+
   /**
    * Handles HTTP POST requests to register a new order.
    *
@@ -59,7 +66,10 @@ public class OrdersApi {
             .issuedAt(orderDto.issuedAt())
             .build();
 
-    log.info("Registering order: {}", command);
+    log.info("Registering new order");
+
+    orderCommandHandler.handle(command);
+
     var response = ResponseDto.builder().success(true).build();
     return ResponseEntity.ok().body(response);
   }
@@ -73,7 +83,10 @@ public class OrdersApi {
   @DeleteMapping(value = "/{orderId}")
   public ResponseEntity<ResponseDto> cancelOrder(@PathVariable String orderId) {
     CancelOrderCommand command = new CancelOrderCommand(orderId);
-    log.info("Cancelling order: {}", command);
+    log.info("Cancelling order: {}", orderId);
+
+    orderCommandHandler.handle(command);
+
     var response = ResponseDto.builder().success(true).build();
     return ResponseEntity.ok().body(response);
   }
@@ -89,9 +102,11 @@ public class OrdersApi {
   @PutMapping(value = "/{orderId}/status")
   public ResponseEntity<ResponseDto> updateOrderStatus(
       @PathVariable String orderId, @Valid @RequestBody OrderStatusUpdateDto orderStatus) {
-
     UpdateOrderStatusCommand command = new UpdateOrderStatusCommand(orderId, orderStatus.status());
-    log.info("Updating order status: {}", command);
+    log.info("Updating order status for order: {}", orderId);
+
+    orderCommandHandler.handle(command);
+
     var response = ResponseDto.builder().success(true).build();
     return ResponseEntity.ok().body(response);
   }
