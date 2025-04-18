@@ -75,26 +75,23 @@ public class Order extends AggregateRoot {
             .totalCost(totalCost)
             .build();
 
-    Event<OrderCreatedPayload> event = OrderEvents.createOrderCreatedEvent(orderId, payload, 1);
+    Event<OrderCreatedPayload> event = OrderEvents.createOrderCreatedEvent(orderId, payload, 0);
     order.applyChange(event);
     return order;
   }
 
   /**
-   * Updates the order status to the specified new status.
+   * Updates the status of the order.
    *
    * <p>This method enforces the following business rules:
    *
    * <ul>
-   *   <li>A cancelled order cannot be updated
-   *   <li>The status transition must be valid according to the allowed order status workflow
+   *   <li>An order that has been cancelled cannot be updated
+   *   <li>Only certain status transitions are allowed
    * </ul>
    *
-   * <p>When the status is updated, an OrderStatusUpdatedEvent is generated and applied to the
-   * order.
-   *
-   * @param newStatus the new status to set for this order
-   * @throws IllegalStateException if the order is already cancelled or if the status transition is
+   * @param newStatus the new status to set
+   * @throws IllegalStateException if the order has been cancelled or if the status transition is
    *     invalid
    */
   public void updateStatus(OrderStatus newStatus) {
@@ -109,7 +106,7 @@ public class Order extends AggregateRoot {
 
     OrderStatusUpdatedPayload payload = new OrderStatusUpdatedPayload(getId(), newStatus);
     Event<OrderStatusUpdatedPayload> event =
-        OrderEvents.createOrderStatusUpdatedEvent(getId(), payload, getVersion() + 1);
+        OrderEvents.createOrderStatusUpdatedEvent(getId(), payload, getVersion());
 
     applyChange(event);
   }
@@ -123,9 +120,7 @@ public class Order extends AggregateRoot {
    *   <li>An order that has been shipped or delivered cannot be cancelled
    * </ul>
    *
-   * <p>When the order is cancelled, an OrderCancelledEvent is generated and applied to the order.
-   *
-   * @throws IllegalStateException if the order has already been shipped or delivered
+   * @throws IllegalStateException if the order has been shipped or delivered
    */
   public void cancel() {
     if (status == OrderStatus.SHIPPED
@@ -137,7 +132,7 @@ public class Order extends AggregateRoot {
 
     OrderCancelledPayload payload = new OrderCancelledPayload(getId());
     Event<OrderCancelledPayload> event =
-        OrderEvents.createOrderCancelledEvent(getId(), payload, getVersion() + 1);
+        OrderEvents.createOrderCancelledEvent(getId(), payload, getVersion());
 
     applyChange(event);
   }
