@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/benidevo/order-fulfillment/query/internal/api/handlers"
 	"github.com/benidevo/order-fulfillment/query/internal/config"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -50,6 +51,22 @@ func (app *application) routes() {
 	app.router.GET("/", func(c *gin.Context) {
 		c.String(200, "Hello, world!")
 	})
+
+	api := app.router.Group("/api/v1")
+	{
+		inventory := api.Group("/inventory")
+		inventoryHandler := handlers.NewInventoryHandler()
+		{
+			inventory.GET("", inventoryHandler.ListInventory)
+		}
+
+		orders := api.Group("/orders")
+		ordersHandler := handlers.NewOrdersHandler()
+		{
+			orders.GET("", ordersHandler.ListOrders)
+			orders.GET("/:id", ordersHandler.GetOrder)
+		}
+	}
 }
 
 // Run starts the application server on the configured port and handles graceful shutdown.
