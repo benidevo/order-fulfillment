@@ -3,6 +3,7 @@ package mongodb
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/benidevo/order-fulfillment/query/internal/domain"
 	"github.com/benidevo/order-fulfillment/query/internal/models"
@@ -168,6 +169,7 @@ func (m *mongoInventoryRepository) UpsertByProductId(ctx context.Context, item *
 	if err != nil {
 		return err
 	}
+	inventoryModel.UpdatedAt = time.Now()
 
 	filter := bson.M{"productId": item.ProductId}
 	update := bson.M{"$set": inventoryModel}

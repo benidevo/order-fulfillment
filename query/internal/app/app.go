@@ -11,6 +11,8 @@ import (
 
 	"github.com/benidevo/order-fulfillment/query/internal/api/handlers"
 	"github.com/benidevo/order-fulfillment/query/internal/config"
+	"github.com/benidevo/order-fulfillment/query/internal/events/eventConsumers"
+	"github.com/benidevo/order-fulfillment/query/internal/events/eventHandlers"
 	"github.com/benidevo/order-fulfillment/query/internal/models"
 	"github.com/benidevo/order-fulfillment/query/internal/repositories/mongodb"
 	"github.com/gin-gonic/gin"
@@ -19,10 +21,11 @@ import (
 )
 
 type application struct {
-	config   *config.Config
-	router   *gin.Engine
-	dbClient *mongo.Client
-	handlers *handlers.Handlers
+	config            *config.Config
+	router            *gin.Engine
+	dbClient          *mongo.Client
+	handlers          *handlers.Handlers
+	inventoryConsumer *eventConsumers.InventoryConsumer
 }
 
 // Creates and returns a new application instance based on the provided configuration.
@@ -54,12 +57,8 @@ func New(cfg *config.Config) (*application, error) {
 	return app, nil
 }
 
-// Run starts the application server on the configured port and handles graceful shutdown.
-// It creates a separate goroutine to run the HTTP server and waits for either server errors
-// or termination signals (SIGINT or SIGTERM). When a termination signal is received,
-// the database connection is gracefully closed within a 10-second timeout.
-// Returns an error if the server encounters an error during startup or if database
-// disconnection fails.
+// Run starts the application's HTTP server, Kafka consumer services, and sets
+// up graceful shutdown handling.
 func (app *application) Run() error {
 	errChan := make(chan error, 1)
 
@@ -67,6 +66,13 @@ func (app *application) Run() error {
 		log.Printf("Starting server on port %s", app.config.Port)
 		if err := app.router.Run(":" + app.config.Port); err != nil {
 			errChan <- err
+		}
+	}()
+
+	go func() {
+		log.Println("Starting Kafka consumer for inventory...")
+		if err := app.inventoryConsumer.Start(context.Background()); err != nil {
+			errChan <- fmt.Errorf("failed to start inventory consumer: %w", err)
 		}
 	}()
 
@@ -104,6 +110,14 @@ func (app *application) setupDependencies() {
 	app.handlers = &handlers.Handlers{
 		Inventory: handlers.NewInventoryHandler(inventoryRepo),
 		Orders:    handlers.NewOrdersHandler(),
+	}
+
+	inventoryEventHandler := eventHandlers.NewInventoryEventHandler(inventoryRepo)
+
+	var err error
+	app.inventoryConsumer, err = eventConsumers.NewInventoryConsumer(app.config, inventoryEventHandler)
+	if err != nil {
+		log.Fatalf("failed to create inventory consumer: %v", err)
 	}
 }
 

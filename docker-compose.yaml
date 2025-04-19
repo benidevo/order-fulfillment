@@ -28,6 +28,11 @@ services:
     restart: unless-stopped
     depends_on:
       - zookeeper
+    healthcheck:
+      test: ["CMD", "kafka-topics.sh", "--list", "--bootstrap-server", "localhost:9092"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
 
   kafdrop:
     image: obsidiandynamics/kafdrop:4.1.0
@@ -74,10 +79,12 @@ services:
       - order-network
     volumes:
       - ./query:/app
-    restart: unless-stopped
+    restart: always
     depends_on:
-      - kafka
-      - mongodb
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
 
   mongodb:
     image: mongo:7.0
