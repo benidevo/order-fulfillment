@@ -26,36 +26,44 @@ The system follows an Event Sourcing and CQRS architecture with the following co
 - Processes all write operations through commands
 - Validates commands and generates domain events
 - Built with Spring Boot and Java 17
-- Publishes events to Kafka
+- Uses in-memory event store with Kafka publishing
+- Maintains proper aggregate boundaries (Order, Inventory)
 
-### Event Store (Kafka)
+### Event Bus (Kafka)
 
-- Serves as the source of truth for the system
-- Stores all events with appropriate retention
+- Serves as the communication channel between components
 - Provides event streams for building read models
+- Enables event replay capabilities
+- Facilitates eventual consistency
 
-### Query Side (Node.js - Planned)
+### Query Side (Planned - Node.js)
 
-- Consumes events to build and maintain read models
-- Provides efficient query capabilities
-- Optimizes data structures for specific query patterns
+- Will consume events to build and maintain read models
+- Will provide efficient query endpoints
+- Will demonstrate eventual consistency from command side
 
-## Features
+## Key Concepts Demonstrated
 
-- **Order Registration**: Receive finalized orders from upstream services
-- **Inventory Management**: Track inventory levels and allocate to orders
-- **Fulfillment Tracking**: Process orders through confirmation, shipping, and delivery
-- **Order Cancellation**: Process cancellations and return inventory
-- **Inventory Projection**: Maintain a view of available inventory from product service events
+- **Event Sourcing**: Using events as the source of truth
+- **CQRS**: Separating read and write responsibilities
+- **Domain-Driven Design**: Proper aggregate boundaries and invariants
+- **Event-Driven Architecture**: Loose coupling through events
+- **Eventual Consistency**: Asynchronous propagation of changes
+
+## Project Features
+
+- **Order Management**: Create, cancel, and update order status
+- **Inventory Control**: Allocate and return inventory for orders
+- **Event Publishing**: All state changes published as events
+- **Partial Fulfillment**: Orders can be partially fulfilled based on inventory
 
 ## Technical Stack
 
 - **Command Service**: Java 17, Spring Boot, Spring Kafka
-- **Event Store**: Apache Kafka
-- **Query Service**: Node.js, Express, MongoDB (planned)
+- **Event Store**: Apache Kafka + In-memory storage
+- **Query Service**: Node.js, Express (planned)
 - **Infrastructure**: Docker, Docker Compose
 - **Build Tool**: Maven
-- **Code Quality**: Spotless
 
 ## Getting Started
 
@@ -99,27 +107,33 @@ The system follows an Event Sourcing and CQRS architecture with the following co
    http://localhost:8080
    ```
 
+5. Kafka management UI (Kafdrop) will be available at:
+
+   ```
+   http://localhost:9000
+   ```
+
 ### Available Commands
 
 The following make commands are available:
 
 - `make build`: Build all services
-- `make build-no-cache`: Build all services without using cache
 - `make run`: Start all services in detached mode
 - `make run-it`: Start all services in interactive mode (shows logs)
 - `make stop`: Stop all services
-- `make stop-volumes`: Stop all services and remove volumes
-- `make test-command-service`: Run tests for the command service
-- `make format-command-service`: Format code in the command service using Spotless
+- `make format-command-service`: Format code in the command service
 
 ## API Endpoints
 
 ### Command Service
 
 ```
-POST /api/orders                      # Register a finalized order
-PUT /api/orders/{orderId}/status      # Update order status
-DELETE /api/orders/{orderId}          # Cancel an order
+POST /api/v1/orders                      # Register a new order
+PUT /api/v1/orders/{orderId}/status      # Update order status
+DELETE /api/v1/orders/{orderId}          # Cancel an order
+PUT /api/v1/inventory/{productId}        # Update inventory quantity
+POST /api/v1/inventory/{productId}/allocate  # Manually allocate inventory
+POST /api/v1/inventory/{productId}/return    # Manually return inventory
 ```
 
 ### Query Service (Planned)
@@ -130,22 +144,19 @@ GET /api/orders/{orderId}             # View order details
 GET /api/orders?status=               # List orders by status
 ```
 
-## Event Model
+## Understanding the Codebase
 
-The system uses the following core event types:
+### Command Side Structure
 
-### Inventory Events
+- **API Layer**: REST controllers in `api` package
+- **Command Layer**: Command objects and handlers
+- **Domain Layer**: Aggregates and value objects
+- **Event Layer**: Event definitions and publishing
+- **Repository Layer**: Event storage and reconstruction
 
-- `InventoryUpdated` - When product inventory changes (from Product Service)
-- `InventoryAllocated` - When inventory is assigned to an order
-- `InventoryReturned` - When inventory is returned after cancellation
+### Key Design Decisions
 
-### Order Events
-
-- `OrderReceived` - When an order is first received from upstream
-- `OrderRegistered` - When an order passes validation and is accepted
-- `OrderRejected` - When an order cannot be fulfilled (e.g., insufficient inventory)
-- `OrderConfirmed` - When fulfillment process begins
-- `OrderShipped` - When order is shipped to customer
-- `OrderDelivered` - When delivery is confirmed
-- `OrderCancelled` - When an order is cancelled
+1. **In-Memory Storage**: For simplicity and educational purposes
+2. **Independent Aggregates**: Order and Inventory are separate boundaries
+3. **Event Publishing**: All state changes are recorded as events
+4. **Partial Fulfillment**: Orders attempt to allocate each item individually
