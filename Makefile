@@ -22,5 +22,7 @@ test-command-service:
 format-command-service:
 	docker compose exec command bash -c "cd /app && ./mvnw spotless:apply"
 
+format-query-service:
+	docker compose exec query bash -c "go fmt ./... && go vet ./..."
 
 .PHONY: build run run-it stop stop-volumes test-command-service format-command-service

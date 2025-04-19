@@ -112,3 +112,5 @@ docker/data/
 temp/
 .cache/
 .sass-cache/
+
+query/tmp

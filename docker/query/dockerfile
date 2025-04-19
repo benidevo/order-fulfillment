@@ -1,0 +1,12 @@
+FROM golang:1.23-alpine AS dev
+
+WORKDIR /app
+
+RUN go install github.com/githubnemo/CompileDaemon@latest
+
+COPY query/go.mod query/go.sum ./
+RUN go mod download
+
+EXPOSE 8081
+
+CMD ["CompileDaemon", "--build=go build -o ./tmp/api ./cmd/api", "--command=./tmp/api", "--color=true"]

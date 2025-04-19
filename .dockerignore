@@ -1,0 +1,88 @@
+# Common build artifacts and binaries
+*/bin/
+*/build/
+*/tmp/
+*/out/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Java specific
+*/.gradle/
+*/target/
+*.class
+*.jar
+!command/.mvn/wrapper/maven-wrapper.jar
+*.war
+*.ear
+*.hprof
+
+# Go specific
+*/vendor/
+*.test
+*.out
+*/coverage.txt
+*/coverage.html
+
+# IDE and editor files
+.idea/
+.vscode/
+*.iws
+*.iml
+*.ipr
+.classpath
+.project
+.settings/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*/logs/
+*.log
+
+# Environment files
+*/.env
+*/.env.*
+!*/.env.example
+
+# Git and SCM
+.git/
+.gitignore
+.gitattributes
+
+# Docker files (avoid recursion)
+Dockerfile
+*/Dockerfile
+docker-compose.yml
+docker-compose.yaml
+.dockerignore
+
+# Documentation
+README.md
+doc/
+docs/
+*.md
+
+# Test data and fixtures
+*/testdata/
+
+# Node.js (if used in query service)
+*/node_modules/
+*/npm-debug.log
+*/yarn-debug.log
+*/yarn-error.log
+
+# Spring Boot specific
+*.spring.*.properties
+.spring-boot-devtools.properties
+
+# MongoDB data (if stored locally)
+*/data/db/
+
+# Kafka data (if stored locally)
+*/kafka-logs/
+*/zookeeper-data/

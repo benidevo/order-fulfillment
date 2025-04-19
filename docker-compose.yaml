@@ -60,6 +60,39 @@ services:
     depends_on:
       - kafka
 
+  query:
+    build:
+      context: .
+      dockerfile: docker/query/dockerfile
+      target: dev
+    container_name: query-service
+    env_file:
+      - ./query/.env
+    ports:
+      - "8081:8081"
+    networks:
+      - order-network
+    volumes:
+      - ./query:/app
+    restart: unless-stopped
+    depends_on:
+      - kafka
+      - mongodb
+
+  mongodb:
+    image: mongo:7.0
+    container_name: mongodb
+    ports:
+      - "27017:27017"
+    networks:
+      - order-network
+    volumes:
+      - mongodb-data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    restart: unless-stopped
+
 
 networks:
   order-network:
@@ -69,3 +102,4 @@ networks:
 volumes:
   zookeeper-data:
   kafka-data:
+  mongodb-data:
