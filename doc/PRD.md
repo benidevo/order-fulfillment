@@ -8,58 +8,63 @@ In e-commerce systems, order fulfillment requires accurate inventory tracking, e
 
 ### Project Goal
 
-Create an educational order fulfillment service that demonstrates Event Sourcing and CQRS (Command Query Responsibility Segregation) patterns using Java and Node.js with Kafka as an event bus. This service will showcase how these patterns facilitate domain separation, event-driven architecture, and the benefits of separate read and write models.
+Create an order fulfillment service using Event Sourcing and CQRS (Command Query Responsibility Segregation) patterns. The system uses Java and Spring Boot for the command service and a Go-based query service, connected through Kafka as an event bus. This approach showcases how these patterns facilitate domain separation, enable event-driven architecture, and provide the benefits of specialized read and write models.
 
 ### Educational Focus
 
-This project is intentionally designed as a learning tool rather than a production system. It prioritizes clarity of architectural concepts over enterprise-grade features, using in-memory storage for simplicity while maintaining proper event publishing to demonstrate eventual consistency.
+This project serves as a learning tool for understanding advanced architectural patterns rather than a production-ready system. It prioritizes clarity of concepts and implementation over enterprise-grade features, using in-memory storage with event publishing to demonstrate eventual consistency.
 
 ### Scope
 
-The project will include:
+The project includes:
 
-- Order registration (receiving finalized orders from upstream)
-- Inventory allocation and verification
-- Order status tracking through the fulfillment lifecycle
-- Order cancellation with inventory returns
-- Separation of command and query responsibilities
-- Event-driven communication between components
-- Demonstration of event sourcing as the source of truth
+- **Command Processing**: Handling write operations through explicit commands (create, update, cancel)
+- **Domain Enforcement**: Maintaining business rules and invariants within domain aggregates
+- **Event Generation**: Recording all state changes as immutable events
+- **Event Publishing**: Distributing events through Kafka to enable event-driven architecture
+- **Event Sourcing**: Using events as the source of truth for system state
+- **Inventory Management**: Allocating and returning inventory based on order changes
+- **Order Lifecycle Management**: Tracking orders through their fulfillment stages
+- **Polyglot Implementation**: Demonstrating how different languages can work together in a CQRS system
 
 ### Out of Scope
 
-- Persistent storage beyond Kafka (using in-memory for simplicity)
 - Authentication and authorization
-- Comprehensive error recovery mechanisms
 - Production-grade performance optimizations
-- UI components
-- Complex business workflows beyond basic fulfillment
+- User interfaces
+- Advanced error recovery mechanisms
+- Comprehensive analytics
+- Payment processing
+- Customer management
 
 ## System Architecture
 
-The system follows a clean CQRS architecture with the following components:
+The system implements a clean CQRS architecture with the following components:
 
-### Command Side (Java)
+### Command Side (Java/Spring Boot)
 
-- RESTful API for receiving commands (register order, update status, cancel)
-- Command handlers for validation and processing
-- Domain models with proper aggregate boundaries
+- RESTful API for receiving commands (register order, update status, cancel, inventory management)
+- Command handlers for validation and domain rule enforcement
+- Domain models with proper aggregate boundaries (Order and Inventory)
 - Event generation and publishing to Kafka
-- In-memory event store for simplicity
+- In-memory event store with optimistic concurrency control
+- Comprehensive exception handling
 
 ### Event Bus (Kafka)
 
 - Central event distribution mechanism
-- Maintains ordered event streams
+- Maintains ordered event streams by aggregate ID
 - Enables eventual consistency between command and query sides
 - Provides event replay capabilities
+- Decouples command and query services
 
-### Query Side (Node.js - Planned)
+### Query Side (Go)
 
-- Event consumers creating read-optimized projections
-- In-memory projection storage (MongoDB planned for future)
-- RESTful API for efficient queries
-- Multiple specialized read models based on use cases
+- Event consumers for building read-optimized projections (in development)
+- MongoDB for storing read models
+- RESTful API for efficient query operations
+- Multiple specialized read models based on query requirements
+- Independent scaling from command side
 
 ## Domain Models
 
@@ -69,6 +74,7 @@ The system follows a clean CQRS architecture with the following components:
 - Maintains items, addresses, and status
 - Enforces business rules for status transitions
 - Generates events for state changes
+- Maintains invariants during operations
 
 ### Inventory Aggregate
 
@@ -76,51 +82,44 @@ The system follows a clean CQRS architecture with the following components:
 - Handles allocation and returns
 - Enforces inventory constraints
 - Maintains separation from Order aggregate
+- Prevents negative inventory and over-allocation
 
 ## Core Events
 
 ### Order Events
 
-- OrderCreated - When a new order is registered
-- OrderStatusUpdated - When an order transitions states
-- OrderCancelled - When an order is cancelled
+- **OrderCreated**: Generated when a new order is registered
+- **OrderStatusUpdated**: Generated when an order transitions between states
+- **OrderCancelled**: Generated when an order is cancelled
 
 ### Inventory Events
 
-- InventoryUpdated - When stock levels change
-- InventoryAllocated - When inventory is reserved for an order
-- InventoryReturned - When inventory is returned from cancelled orders
+- **InventoryUpdated**: Generated when stock levels change
+- **InventoryAllocated**: Generated when inventory is reserved for an order
+- **InventoryReturned**: Generated when inventory is returned from cancelled orders
 
 ## Query Models (Planned)
 
-- OrderSummary - Current state of all orders
-- InventoryStatus - Current inventory levels
-- ShippingManifest - Orders ready to be shipped
-- FulfillmentDashboard - Operational metrics
+- **OrderSummary**: Current state of all orders with essential details
+- **InventoryStatus**: Current inventory levels across products
+- **FulfillmentWorkQueue**: Orders ready for processing by status
+- **CustomerOrderHistory**: Order history organized by customer
 
 ## Technical Stack
 
-- **Command Side**: Java 17, Spring Boot, Spring Kafka
-- **Event Bus**: Apache Kafka
-- **Query Side (Planned)**: Node.js, Express, KafkaJS
-- **Storage**: In-memory with Kafka as event log
-- **Containers**: Docker and Docker Compose
+- **Command Side**: Java 17, Spring Boot, Spring Kafka, Lombok
+- **Event Bus**: Apache Kafka, Zookeeper
+- **Query Side**: Go, Gin framework, KafkaJS
+- **Storage**: In-memory with Kafka as event log, MongoDB for query models
+- **Infrastructure**: Docker, Docker Compose for local development
 
-## Implementation Approach
-
-1. Start with a clean domain model following DDD principles
-2. Implement the command side with proper aggregate boundaries
-3. Set up Kafka as the event distribution mechanism
-4. Create the query side with read-optimized models
-5. Demonstrate eventual consistency between sides
-
-## Success Criteria
+## Metrics of Success
 
 The project will be considered successful when:
 
-1. It clearly demonstrates CQRS and Event Sourcing patterns
-2. Commands properly update the system state and generate events
-3. The query side builds projections from events
-4. The system handles the basic order fulfillment workflow
-5. Events can be replayed to rebuild system state
-6. Documentation clearly explains the architectural concepts
+1. Commands properly update system state and generate appropriate events
+2. The query side builds and maintains projections from the event stream
+3. The system demonstrates eventual consistency between command and query sides
+4. Events can be replayed to rebuild system state
+5. The polyglot architecture demonstrates language-appropriate implementations
+6. Documentation clearly explains architectural concepts and implementation details
