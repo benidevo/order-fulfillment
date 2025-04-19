@@ -11,6 +11,8 @@ import (
 
 	"github.com/benidevo/order-fulfillment/query/internal/api/handlers"
 	"github.com/benidevo/order-fulfillment/query/internal/config"
+	"github.com/benidevo/order-fulfillment/query/internal/models"
+	"github.com/benidevo/order-fulfillment/query/internal/repositories/mongodb"
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -20,6 +22,7 @@ type application struct {
 	config   *config.Config
 	router   *gin.Engine
 	dbClient *mongo.Client
+	handlers *handlers.Handlers
 }
 
 // Creates and returns a new application instance based on the provided configuration.
@@ -42,31 +45,13 @@ func New(cfg *config.Config) (*application, error) {
 	}
 	app.dbClient = client
 
+	app.setupDependencies()
+	if err := app.initializeIndexes(ctx); err != nil {
+		return nil, fmt.Errorf("failed to initialize indexes: %w", err)
+	}
 	app.routes()
 
 	return app, nil
-}
-
-func (app *application) routes() {
-	app.router.GET("/", func(c *gin.Context) {
-		c.String(200, "Hello, world!")
-	})
-
-	api := app.router.Group("/api/v1")
-	{
-		inventory := api.Group("/inventory")
-		inventoryHandler := handlers.NewInventoryHandler()
-		{
-			inventory.GET("", inventoryHandler.ListInventory)
-		}
-
-		orders := api.Group("/orders")
-		ordersHandler := handlers.NewOrdersHandler()
-		{
-			orders.GET("", ordersHandler.ListOrders)
-			orders.GET("/:id", ordersHandler.GetOrder)
-		}
-	}
 }
 
 // Run starts the application server on the configured port and handles graceful shutdown.
@@ -76,7 +61,6 @@ func (app *application) routes() {
 // Returns an error if the server encounters an error during startup or if database
 // disconnection fails.
 func (app *application) Run() error {
-
 	errChan := make(chan error, 1)
 
 	go func() {
@@ -100,4 +84,45 @@ func (app *application) Run() error {
 	defer cancel()
 
 	return app.dbClient.Disconnect(ctx)
+}
+
+func (app *application) initializeIndexes(ctx context.Context) error {
+	db := app.dbClient.Database(app.config.DBName)
+
+	_, err := db.Collection(models.InventoryCollectionName).Indexes().CreateMany(ctx, models.InventoryIndexes)
+	if err != nil {
+		return fmt.Errorf("failed to create inventory indexes: %w", err)
+	}
+	return nil
+}
+
+func (app *application) setupDependencies() {
+	db := app.dbClient.Database(app.config.DBName)
+
+	inventoryRepo := mongodb.NewMongoInventoryRepository(db)
+
+	app.handlers = &handlers.Handlers{
+		Inventory: handlers.NewInventoryHandler(inventoryRepo),
+		Orders:    handlers.NewOrdersHandler(),
+	}
+}
+
+func (app *application) routes() {
+	app.router.GET("/", func(c *gin.Context) {
+		c.String(200, "Hello, world!")
+	})
+
+	api := app.router.Group("/api/v1")
+	{
+		inventory := api.Group("/inventory")
+		{
+			inventory.GET("", app.handlers.Inventory.ListInventory)
+		}
+
+		orders := api.Group("/orders")
+		{
+			orders.GET("", app.handlers.Orders.ListOrders)
+			orders.GET("/:id", app.handlers.Orders.GetOrder)
+		}
+	}
 }

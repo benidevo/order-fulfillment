@@ -9,6 +9,7 @@ type Config struct {
 	KafkaBrokers string
 	MongoURI     string
 	Port         string
+	DBName       string
 }
 
 // Load retrieves configuration settings from environment variables.
@@ -23,6 +24,7 @@ func Load() (*Config, error) {
 		KafkaBrokers: getEnv("KAFKA_BROKERS", "localhost:9092"),
 		MongoURI:     getEnv("MONGODB_URI", "mongodb://localhost:27017"),
 		Port:         getEnv("PORT", "8081"),
+		DBName:       getEnv("DB_NAME", "order-fulfillment"),
 	}, nil
 }
 
