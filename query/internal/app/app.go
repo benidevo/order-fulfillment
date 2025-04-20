@@ -93,11 +93,16 @@ func (app *application) Run() error {
 }
 
 func (app *application) initializeIndexes(ctx context.Context) error {
+	var err error
 	db := app.dbClient.Database(app.config.DBName)
 
-	_, err := db.Collection(models.InventoryCollectionName).Indexes().CreateMany(ctx, models.InventoryIndexes)
+	_, err = db.Collection(models.InventoryCollectionName).Indexes().CreateMany(ctx, models.InventoryIndexes)
 	if err != nil {
 		return fmt.Errorf("failed to create inventory indexes: %w", err)
+	}
+	_, err = db.Collection(models.OrderCollectionName).Indexes().CreateMany(ctx, models.OrderIndexes)
+	if err != nil {
+		return fmt.Errorf("failed to create order indexes: %w", err)
 	}
 	return nil
 }
@@ -106,10 +111,11 @@ func (app *application) setupDependencies() {
 	db := app.dbClient.Database(app.config.DBName)
 
 	inventoryRepo := mongodb.NewMongoInventoryRepository(db)
+	orderRepo := mongodb.NewMongoOrderRepository(db)
 
 	app.handlers = &handlers.Handlers{
 		Inventory: handlers.NewInventoryHandler(inventoryRepo),
-		Orders:    handlers.NewOrdersHandler(),
+		Orders:    handlers.NewOrdersHandler(orderRepo),
 	}
 
 	inventoryEventHandler := eventHandlers.NewInventoryEventHandler(inventoryRepo)

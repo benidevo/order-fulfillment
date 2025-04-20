@@ -28,20 +28,20 @@ func NewMoney(currency string, value decimal.Decimal) Money {
 // OrderItem represents a line item in an order, containing details about a product being purchased.
 // It includes the product identifier, quantity ordered, and the price of the item.
 type OrderItem struct {
-	ProductID string
+	ProductId string
 	Quantity  int
 	Price     Money
 }
 
-// Creates a new order item with the specified product ID, quantity, and price.
+// Creates a new order item with the specified product Id, quantity, and price.
 // It returns an error if the quantity is less than or equal to zero.
-// The returned OrderItem contains the product ID, quantity, and price provided.
-func NewOrderItem(productID string, quantity int, price Money) (OrderItem, error) {
+// The returned OrderItem contains the product Id, quantity, and price provided.
+func NewOrderItem(productId string, quantity int, price Money) (OrderItem, error) {
 	if quantity <= 0 {
 		return OrderItem{}, fmt.Errorf("quantity must be greater than zero")
 	}
 	return OrderItem{
-		ProductID: productID,
+		ProductId: productId,
 		Quantity:  quantity,
 		Price:     price,
 	}, nil
@@ -138,6 +138,7 @@ func OrderStatusFromString(status string) (OrderStatus, error) {
 // CreatedAt and UpdatedAt timestamps track the order record's lifecycle in the system.
 type Order struct {
 	Id              string
+	OrderId         string
 	CustomerId      string
 	Items           []OrderItem
 	Status          OrderStatus
