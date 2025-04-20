@@ -1,5 +1,16 @@
 FROM nginx:1.27-alpine
 
+COPY docs/openapi.yaml /usr/share/nginx/html/openapi.yaml
+COPY docs/swagger-ui/index.html /usr/share/nginx/html/api-docs/index.html
+COPY docs/redoc/index.html /usr/share/nginx/html/redoc/index.html
+
+RUN apk add --no-cache curl && \
+    mkdir -p /usr/share/nginx/html/api-docs && \
+    curl -sL "https://unpkg.com/swagger-ui-dist@latest/swagger-ui-bundle.js" -o /usr/share/nginx/html/api-docs/swagger-ui-bundle.js && \
+    curl -sL "https://unpkg.com/swagger-ui-dist@latest/swagger-ui-standalone-preset.js" -o /usr/share/nginx/html/api-docs/swagger-ui-standalone-preset.js && \
+    curl -sL "https://unpkg.com/swagger-ui-dist@latest/swagger-ui.css" -o /usr/share/nginx/html/api-docs/swagger-ui.css && \
+    apk del curl
+
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY gateway.conf /etc/nginx/conf.d/default.conf
 

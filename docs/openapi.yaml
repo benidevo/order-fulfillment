@@ -1,0 +1,726 @@
+openapi: 3.1.0
+info:
+  title: Order Fulfillment API
+  description: |
+    API for order management system using CQRS and Event Sourcing patterns.
+
+    The API is split into command (write) and query (read) operations:
+    * Command operations modify system state and return simple acknowledgements
+    * Query operations retrieve current state projections
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: Orders
+    description: Operations for creating and managing orders
+  - name: Inventory
+    description: Operations for managing product inventory
+
+paths:
+  #
+  # Order Endpoints
+  #
+  /api/v1/orders:
+    get:
+      summary: List all orders
+      description: Retrieves a list of all orders in the system
+      operationId: listOrders
+      tags:
+        - Orders
+      responses:
+        '200':
+          description: List of orders successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Order'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      summary: Create a new order
+      description: Register a new order in the system
+      operationId: createOrder
+      tags:
+        - Orders
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderCreateDto'
+      responses:
+        '200':
+          description: Order successfully created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseDto'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorDto'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/orders/{orderId}:
+    get:
+      summary: Get order details
+      description: Retrieve details of a specific order by ID
+      operationId: getOrder
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the order
+          example: "order-001"
+      responses:
+        '200':
+          description: Order details successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Order'
+        '204':
+          description: Order not found
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Cancel an order
+      description: Cancels an existing order
+      operationId: cancelOrder
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the order to cancel
+          example: "order-001"
+      responses:
+        '200':
+          description: Order successfully cancelled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseDto'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Order cannot be cancelled (e.g., already shipped)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/orders/{orderId}/status:
+    put:
+      summary: Update order status
+      description: Updates the status of an existing order
+      operationId: updateOrderStatus
+      tags:
+        - Orders
+      parameters:
+        - name: orderId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the order
+          example: "order-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderStatusUpdateDto'
+      responses:
+        '200':
+          description: Order status successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseDto'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorDto'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Invalid status transition
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  #
+  # Inventory Endpoints
+  #
+  /api/v1/inventory:
+    get:
+      summary: List all inventory items
+      description: Retrieves the current inventory levels for all products
+      operationId: listInventory
+      tags:
+        - Inventory
+      responses:
+        '200':
+          description: List of inventory items successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/InventoryItem'
+        '404':
+          description: No inventory items found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/inventory/{productId}:
+    put:
+      summary: Update inventory quantity
+      description: Updates the quantity of a product in inventory
+      operationId: updateInventory
+      tags:
+        - Inventory
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the product
+          example: "prod-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryUpdateDto'
+      responses:
+        '200':
+          description: Inventory successfully updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseDto'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorDto'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/inventory/{productId}/allocate:
+    post:
+      summary: Allocate inventory to an order
+      description: Allocates a specific quantity of a product to an order
+      operationId: allocateInventory
+      tags:
+        - Inventory
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the product
+          example: "prod-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryAllocationDto'
+      responses:
+        '200':
+          description: Inventory successfully allocated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseDto'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorDto'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '422':
+          description: Insufficient inventory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/inventory/{productId}/return:
+    post:
+      summary: Return inventory from an order
+      description: Returns previously allocated inventory from an order
+      operationId: returnInventory
+      tags:
+        - Inventory
+      parameters:
+        - name: productId
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Unique identifier of the product
+          example: "prod-001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InventoryAllocationDto'
+      responses:
+        '200':
+          description: Inventory successfully returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResponseDto'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorDto'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # Response DTOs
+    ResponseDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Indicates whether the operation was successful
+          example: true
+        data:
+          type: object
+          description: Optional data returned with the response
+          nullable: true
+      required:
+        - success
+
+    ValidationErrorDto:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Always false for validation errors
+          example: false
+        errors:
+          type: object
+          additionalProperties:
+            type: string
+          description: Map of field names to error messages
+          example:
+            customerId: "Customer ID is required"
+            "items[0].quantity": "Quantity must be positive"
+      required:
+        - success
+        - errors
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          description: Always false for errors
+          example: false
+        error:
+          type: string
+          description: Error code
+          example: "ORDER_NOT_FOUND"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Order not found: order-001"
+        details:
+          type: object
+          additionalProperties: true
+          description: Additional error context
+          example:
+            orderId: "order-001"
+      required:
+        - success
+        - error
+        - message
+
+    # Command DTOs
+    OrderCreateDto:
+      type: object
+      properties:
+        customerId:
+          type: string
+          description: Unique identifier of the customer placing the order
+          example: "cust-001"
+        items:
+          type: array
+          description: The list of items to include in the order
+          items:
+            $ref: '#/components/schemas/OrderItemDto'
+          minItems: 1
+        shippingAddress:
+          $ref: '#/components/schemas/AddressDto'
+        billingAddress:
+          $ref: '#/components/schemas/AddressDto'
+        totalCost:
+          type: number
+          format: decimal
+          description: The total monetary cost of the order
+          example: 129.99
+        issuedAt:
+          type: string
+          format: date-time
+          description: When the order was issued
+          example: "2025-04-01T14:30:00Z"
+      required:
+        - customerId
+        - items
+        - shippingAddress
+        - billingAddress
+        - totalCost
+        - issuedAt
+
+    OrderItemDto:
+      type: object
+      properties:
+        productId:
+          type: string
+          description: Unique identifier of the product
+          example: "prod-laptop-001"
+        quantity:
+          type: integer
+          minimum: 1
+          description: The quantity of the product ordered
+          example: 2
+        price:
+          type: number
+          format: decimal
+          description: The unit price of the product
+          example: 59.99
+      required:
+        - productId
+        - quantity
+        - price
+
+    AddressDto:
+      type: object
+      properties:
+        street:
+          type: string
+          description: Street address including house/building number
+          example: "123 Main St"
+        city:
+          type: string
+          description: City name
+          example: "San Francisco"
+        state:
+          type: string
+          description: State or province
+          example: "CA"
+        zipcode:
+          type: string
+          description: Postal or ZIP code
+          example: "94105"
+        country:
+          type: string
+          description: Country name
+          example: "USA"
+      required:
+        - street
+        - city
+        - state
+        - zipcode
+        - country
+
+    OrderStatusUpdateDto:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The new status to apply to the order
+          enum:
+            - REGISTERED
+            - CANCELLED
+            - SHIPPED
+            - PARTIALLY_SHIPPED
+            - DELIVERED
+            - PARTIALLY_DELIVERED
+          example: "SHIPPED"
+      required:
+        - status
+
+    InventoryUpdateDto:
+      type: object
+      properties:
+        quantity:
+          type: integer
+          minimum: 0
+          description: The new available quantity
+          example: 50
+      required:
+        - quantity
+
+    InventoryAllocationDto:
+      type: object
+      properties:
+        orderId:
+          type: string
+          description: Unique identifier of the order
+          example: "order-001"
+        quantity:
+          type: integer
+          minimum: 1
+          description: The quantity to allocate or return
+          example: 2
+      required:
+        - orderId
+        - quantity
+
+    # Domain Models
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the order
+          example: "order-001"
+        customerId:
+          type: string
+          description: Identifier of the customer who placed the order
+          example: "cust-001"
+        items:
+          type: array
+          description: List of items in the order
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        status:
+          type: string
+          description: Current status of the order
+          enum:
+            - REGISTERED
+            - CANCELLED
+            - SHIPPED
+            - PARTIALLY_SHIPPED
+            - DELIVERED
+            - PARTIALLY_DELIVERED
+          example: "REGISTERED"
+        shippingAddress:
+          $ref: '#/components/schemas/Address'
+        billingAddress:
+          $ref: '#/components/schemas/Address'
+        totalCost:
+          $ref: '#/components/schemas/Money'
+        issuedAt:
+          type: string
+          format: date-time
+          description: When the order was issued
+          example: "2025-04-01T14:30:00Z"
+        createdAt:
+          type: string
+          format: date-time
+          description: When the order was created in the system
+          example: "2025-04-01T14:30:05Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the order was last updated
+          example: "2025-04-01T14:30:05Z"
+
+    OrderItem:
+      type: object
+      properties:
+        productId:
+          type: string
+          description: Unique identifier of the product
+          example: "prod-laptop-001"
+        quantity:
+          type: integer
+          description: The quantity of the product ordered
+          example: 2
+        price:
+          $ref: '#/components/schemas/Money'
+
+    Address:
+      type: object
+      properties:
+        street:
+          type: string
+          description: Street address including house/building number
+          example: "123 Main St"
+        city:
+          type: string
+          description: City name
+          example: "San Francisco"
+        state:
+          type: string
+          description: State or province
+          example: "CA"
+        zipCode:
+          type: string
+          description: Postal or ZIP code
+          example: "94105"
+        country:
+          type: string
+          description: Country name
+          example: "USA"
+
+    Money:
+      type: object
+      properties:
+        currency:
+          type: string
+          description: The currency code
+          example: "EUR"
+        value:
+          type: number
+          format: decimal
+          description: The monetary amount
+          example: 59.99
+
+    InventoryItem:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the inventory item
+          example: "inv-001"
+        productId:
+          type: string
+          description: Unique identifier of the product
+          example: "prod-laptop-001"
+        availableQuantity:
+          type: integer
+          description: The quantity available for allocation
+          example: 45
+        allocatedQuantity:
+          type: integer
+          description: The quantity already allocated to orders
+          example: 5
+        status:
+          type: string
+          description: Current status of the inventory item
+          enum:
+            - AVAILABLE
+            - OUT_OF_STOCK
+            - DISCONTINUED
+          example: "AVAILABLE"
+        createdAt:
+          type: string
+          format: date-time
+          description: When the inventory record was created
+          example: "2025-03-15T10:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: When the inventory record was last updated
+          example: "2025-04-01T15:45:30Z"

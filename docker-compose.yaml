@@ -46,7 +46,7 @@ services:
   command:
     build:
       context: .
-      dockerfile: docker/command/Dockerfile
+      dockerfile: docker/command/dockerfile
     container_name: command-service
     env_file:
       - ./command/.env
@@ -93,7 +93,7 @@ services:
   nginx:
     build:
       context: ./docker/nginx
-      dockerfile: Dockerfile
+      dockerfile: dockerfile
     container_name: nginx-gateway
     ports:
       - "8000:80"
@@ -114,6 +114,7 @@ services:
 
   seed:
     image: golang:1.23-alpine
+    container_name: seed
     volumes:
       - ./scripts/seed:/app
     working_dir: /app

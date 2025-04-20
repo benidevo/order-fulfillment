@@ -1,7 +1,9 @@
 build:
+	sh ./scripts/update-docs.sh
 	docker compose build
 
 build-no-cache:
+	sh ./scripts/update-docs.sh
 	docker compose build --no-cache
 
 run:
@@ -27,5 +29,8 @@ seed-data:
 
 format-seed-service:
 	docker compose run seed sh -c "go fmt ./... && go vet ./..."
+
+update-docs:
+	sh ./scripts/update-docs.sh
 
 .PHONY: build run run-it stop stop-volumes test-command-service format-command-service format-query-service seed-data format-seed-service

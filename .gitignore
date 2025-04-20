@@ -114,3 +114,5 @@ temp/
 .sass-cache/
 
 query/tmp
+
+docker/nginx/docs
