@@ -1,4 +1,4 @@
-package eventConsumers
+package consumers
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 	"github.com/IBM/sarama"
 	"github.com/benidevo/order-fulfillment/query/internal/config"
 	"github.com/benidevo/order-fulfillment/query/internal/events"
-	"github.com/benidevo/order-fulfillment/query/internal/events/eventHandlers"
+	"github.com/benidevo/order-fulfillment/query/internal/events/event_handlers"
 )
 
 // Constants for inventory event types
@@ -21,13 +21,13 @@ const (
 // InventoryConsumer handles consuming inventory events from Kafka
 type InventoryConsumer struct {
 	baseConsumer *BaseConsumer
-	handler      *eventHandlers.InventoryEventHandler
+	handler      *eventhandlers.InventoryEventHandler
 }
 
 // NewInventoryConsumer creates and configures a new consumer for inventory events.
 // It initializes a base Kafka consumer with the specified configuration and sets up
 // a message handler that processes inventory events using the provided handler.
-func NewInventoryConsumer(cfg *config.Config, handler *eventHandlers.InventoryEventHandler) (*InventoryConsumer, error) {
+func NewInventoryConsumer(cfg *config.Config, handler *eventhandlers.InventoryEventHandler) (*InventoryConsumer, error) {
 	messageHandler := func(ctx context.Context, message *sarama.ConsumerMessage) error {
 		return processInventoryMessage(ctx, message, handler)
 	}
@@ -54,7 +54,7 @@ func (c *InventoryConsumer) Start(ctx context.Context) error {
 	return c.baseConsumer.Start(ctx)
 }
 
-func processInventoryMessage(ctx context.Context, message *sarama.ConsumerMessage, handler *eventHandlers.InventoryEventHandler) error {
+func processInventoryMessage(ctx context.Context, message *sarama.ConsumerMessage, handler *eventhandlers.InventoryEventHandler) error {
 	var eventMessage events.BaseEvent
 	if err := json.Unmarshal(message.Value, &eventMessage); err != nil {
 		return err

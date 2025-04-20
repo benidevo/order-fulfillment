@@ -7,7 +7,6 @@ import (
 	"github.com/benidevo/order-fulfillment/query/internal/domain"
 	"github.com/benidevo/order-fulfillment/query/internal/models"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -26,14 +25,10 @@ func NewMongoOrderRepository(db *mongo.Database) *mongoOrderRepository {
 
 // FindById retrieves an order by its ID from the MongoDB collection.
 func (m *mongoOrderRepository) FindById(ctx context.Context, id string) (*domain.Order, error) {
-	objectID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
-	filter := bson.M{"_id": objectID}
+	filter := bson.M{"orderId": id}
 
 	var orderModel models.OrderModel
-	err = m.collection.FindOne(ctx, filter).Decode(&orderModel)
+	err := m.collection.FindOne(ctx, filter).Decode(&orderModel)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
 			return nil, nil

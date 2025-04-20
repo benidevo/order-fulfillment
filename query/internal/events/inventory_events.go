@@ -1,22 +1,5 @@
 package events
 
-import (
-	"encoding/json"
-	"time"
-)
-
-// BaseEvent represents a basic event structure that captures common attributes
-// of an event in an event-sourcing system.
-type BaseEvent struct {
-	EventID       string          `json:"eventId"`
-	EventType     string          `json:"eventType"`
-	AggregateID   string          `json:"aggregateId"`
-	AggregateType string          `json:"aggregateType"`
-	Timestamp     time.Time       `json:"timestamp"`
-	Version       int64           `json:"version"`
-	Payload       json.RawMessage `json:"payload"`
-}
-
 // InventoryUpdatedEvent represents the payload when inventory is updated
 type InventoryUpdatedPayload struct {
 	ProductID string `json:"productId"`

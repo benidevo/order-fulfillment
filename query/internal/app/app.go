@@ -11,8 +11,8 @@ import (
 
 	"github.com/benidevo/order-fulfillment/query/internal/api/handlers"
 	"github.com/benidevo/order-fulfillment/query/internal/config"
-	"github.com/benidevo/order-fulfillment/query/internal/events/eventConsumers"
-	"github.com/benidevo/order-fulfillment/query/internal/events/eventHandlers"
+	"github.com/benidevo/order-fulfillment/query/internal/events/event_consumers"
+	"github.com/benidevo/order-fulfillment/query/internal/events/event_handlers"
 	"github.com/benidevo/order-fulfillment/query/internal/models"
 	"github.com/benidevo/order-fulfillment/query/internal/repositories/mongodb"
 	"github.com/gin-gonic/gin"
@@ -25,7 +25,8 @@ type application struct {
 	router            *gin.Engine
 	dbClient          *mongo.Client
 	handlers          *handlers.Handlers
-	inventoryConsumer *eventConsumers.InventoryConsumer
+	inventoryConsumer *consumers.InventoryConsumer
+	ordersConsumer    *consumers.OrderConsumer
 }
 
 // Creates and returns a new application instance based on the provided configuration.
@@ -76,6 +77,13 @@ func (app *application) Run() error {
 		}
 	}()
 
+	go func() {
+		log.Println("Starting Kafka consumer for orders...")
+		if err := app.ordersConsumer.Start(context.Background()); err != nil {
+			errChan <- fmt.Errorf("failed to start orders consumer: %w", err)
+		}
+	}()
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
@@ -118,12 +126,17 @@ func (app *application) setupDependencies() {
 		Orders:    handlers.NewOrdersHandler(orderRepo),
 	}
 
-	inventoryEventHandler := eventHandlers.NewInventoryEventHandler(inventoryRepo)
+	inventoryEventHandler := eventhandlers.NewInventoryEventHandler(inventoryRepo)
+	orderEventHandler := eventhandlers.NewOrderEventHandler(orderRepo)
 
 	var err error
-	app.inventoryConsumer, err = eventConsumers.NewInventoryConsumer(app.config, inventoryEventHandler)
+	app.inventoryConsumer, err = consumers.NewInventoryConsumer(app.config, inventoryEventHandler)
 	if err != nil {
 		log.Fatalf("failed to create inventory consumer: %v", err)
+	}
+	app.ordersConsumer, err = consumers.NewOrderConsumer(app.config, orderEventHandler)
+	if err != nil {
+		log.Fatalf("failed to create order consumer: %v", err)
 	}
 }
 

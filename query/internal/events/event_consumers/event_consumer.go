@@ -1,4 +1,4 @@
-package eventConsumers
+package consumers
 
 import (
 	"context"

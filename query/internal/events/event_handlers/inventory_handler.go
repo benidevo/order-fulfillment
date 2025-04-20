@@ -1,4 +1,4 @@
-package eventHandlers
+package eventhandlers
 
 import (
 	"context"
