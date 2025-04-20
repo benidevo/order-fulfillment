@@ -25,4 +25,7 @@ format-command-service:
 format-query-service:
 	docker compose exec query sh -c "go fmt ./... && go vet ./..."
 
-.PHONY: build run run-it stop stop-volumes test-command-service format-command-service
+seed-data:
+	docker run --rm --network order-network -v $(pwd)/scripts/seed:/app -w /app golang:1.23-alpine go run .
+
+.PHONY: build run run-it stop stop-volumes test-command-service format-command-service format-query-service seed-data
