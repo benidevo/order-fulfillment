@@ -1,5 +1,9 @@
 package events
 
+import (
+	"encoding/json"
+)
+
 // OrderCreatedPayload represents the payload when a new order is created
 type OrderCreatedPayload struct {
 	OrderId         string         `json:"orderId"`
@@ -41,8 +45,8 @@ type AddressDto struct {
 
 // MoneyDto represents a monetary value with currency
 type MoneyDto struct {
-	Currency string `json:"currency"`
-	Value    string `json:"value"`
+	Currency string      `json:"currency"`
+	Value    json.Number `json:"value"`
 }
 
 // OrderCreatedEvent represents the event that occurs when a new order is created.

@@ -112,6 +112,17 @@ services:
       timeout: 5s
       retries: 3
 
+  seed:
+    image: golang:1.23-alpine
+    volumes:
+      - ./scripts/seed:/app
+    working_dir: /app
+    networks:
+      - order-network
+    depends_on:
+      - command
+      - query
+
 
 networks:
   order-network:

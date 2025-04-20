@@ -2,12 +2,12 @@ package eventhandlers
 
 import (
 	"context"
-	"github.com/shopspring/decimal"
 	"time"
 
 	"github.com/benidevo/order-fulfillment/query/internal/domain"
 	"github.com/benidevo/order-fulfillment/query/internal/events"
 	"github.com/benidevo/order-fulfillment/query/internal/repositories"
+	"github.com/shopspring/decimal"
 )
 
 // OrderEventHandler handles all order-related events
@@ -32,7 +32,7 @@ func (handler *OrderEventHandler) HandleOrderCreated(ctx context.Context, event 
 
 	items := make([]domain.OrderItem, 0, len(event.Payload.Items))
 	for _, item := range event.Payload.Items {
-		value, _ := decimal.NewFromString(item.Price.Value)
+		value, _ := decimal.NewFromString(item.Price.Value.String())
 
 		orderItem := domain.OrderItem{
 			ProductId: item.ProductId,
@@ -61,10 +61,7 @@ func (handler *OrderEventHandler) HandleOrderCreated(ctx context.Context, event 
 		Country: event.Payload.BillingAddress.Country,
 	}
 
-	totalValue, err := decimal.NewFromString(event.Payload.TotalCost.Value)
-	if err != nil {
-		totalValue = decimal.NewFromInt(0)
-	}
+	totalValue, _ := decimal.NewFromString(event.Payload.TotalCost.Value.String())
 
 	status, err := domain.OrderStatusFromString(event.Payload.Status)
 	if err != nil {

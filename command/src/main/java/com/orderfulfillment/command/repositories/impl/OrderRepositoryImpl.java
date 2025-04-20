@@ -1,13 +1,10 @@
 package com.orderfulfillment.command.repositories.impl;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.orderfulfillment.command.domain.EventMessage;
 import com.orderfulfillment.command.domain.Order;
 import com.orderfulfillment.command.events.Event;
 import com.orderfulfillment.command.exceptions.ConcurrencyException;
 import com.orderfulfillment.command.exceptions.EventPublishingException;
-import com.orderfulfillment.command.exceptions.EventSerializationException;
 import com.orderfulfillment.command.exceptions.domain.OrderNotFoundException;
 import com.orderfulfillment.command.repositories.OrderRepository;
 import java.util.ArrayList;
@@ -39,16 +36,12 @@ import org.springframework.stereotype.Repository;
 public class OrderRepositoryImpl implements OrderRepository {
   private final KafkaTemplate<String, Object> kafkaTemplate;
   private final NewTopic topic;
-  private final ObjectMapper objectMapper;
   private final Map<String, List<Event<?>>> eventStore = new HashMap<>();
 
   public OrderRepositoryImpl(
-      KafkaTemplate<String, Object> kafkaTemplate,
-      @Qualifier("orderEventsTopic") NewTopic topic,
-      ObjectMapper objectMapper) {
+      KafkaTemplate<String, Object> kafkaTemplate, @Qualifier("orderEventsTopic") NewTopic topic) {
     this.kafkaTemplate = kafkaTemplate;
     this.topic = topic;
-    this.objectMapper = objectMapper;
   }
 
   public Order findById(String orderId) {
@@ -109,32 +102,13 @@ public class OrderRepositoryImpl implements OrderRepository {
     order.markChangesAsCommitted();
   }
 
-  /**
-   * Creates an event message for publishing to the event store.
-   *
-   * <p>This method converts an event object to a serialized EventMessage by serializing the event
-   * payload to JSON format.
-   *
-   * @param event The domain event containing metadata such as ID, type, and aggregate information
-   * @param payload The payload object to be serialized into JSON
-   * @return An EventMessage containing all event metadata and the serialized payload
-   * @throws EventSerializationException if serialization fails
-   */
   private EventMessage createEventMessage(Event<?> event, Object payload) {
-    String payloadJson;
-    try {
-      payloadJson = objectMapper.writeValueAsString(payload);
-    } catch (JsonProcessingException e) {
-      log.error("Error serializing payload for event {}", event.getEventId(), e);
-      throw new EventSerializationException(event.getEventId(), e);
-    }
-
     return new EventMessage(
         event.getEventId(),
         event.getEventType(),
         event.getAggregateId(),
         event.getAggregateType(),
         event.getTimestamp().toString(),
-        payloadJson);
+        payload);
   }
 }

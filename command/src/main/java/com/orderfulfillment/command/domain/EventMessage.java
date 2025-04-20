@@ -18,5 +18,5 @@ public class EventMessage {
   private String aggregateId;
   private String aggregateType;
   private String timestamp;
-  private String payload;
+  private Object payload;
 }

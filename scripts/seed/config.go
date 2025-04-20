@@ -20,7 +20,7 @@ type Config struct {
 // LoadConfig loads the configuration from environment variables or uses defaults
 func LoadConfig() Config {
 	cfg := Config{
-		BaseURL:       getEnvOr("SEED_BASE_URL", "http://localhost:80"),
+		BaseURL:       getEnvOr("SEED_BASE_URL", "http://nginx:80"),
 		NumProducts:   getEnvIntOr("SEED_NUM_PRODUCTS", 10),
 		NumOrders:     getEnvIntOr("SEED_NUM_ORDERS", 20),
 		RandomSeed:    getEnvInt64Or("SEED_RANDOM_SEED", 42),
