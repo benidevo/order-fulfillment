@@ -2,8 +2,6 @@ services:
   zookeeper:
     image: bitnami/zookeeper:3.9
     container_name: zookeeper
-    ports:
-      - "2181:2181"
     environment:
       - ALLOW_ANONYMOUS_LOGIN=yes
     volumes:
@@ -15,8 +13,6 @@ services:
   kafka:
     image: bitnami/kafka:3.9.0
     container_name: kafka
-    ports:
-      - "9092:9092"
     environment:
       - KAFKA_CFG_ZOOKEEPER_CONNECT=zookeeper:2181
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092
@@ -54,8 +50,6 @@ services:
     container_name: command-service
     env_file:
       - ./command/.env
-    ports:
-      - "8080:8080"
     networks:
       - order-network
     volumes:
@@ -73,8 +67,6 @@ services:
     container_name: query-service
     env_file:
       - ./query/.env
-    ports:
-      - "8081:8081"
     networks:
       - order-network
     volumes:
@@ -89,8 +81,6 @@ services:
   mongodb:
     image: mongo:7.0
     container_name: mongodb
-    ports:
-      - "27017:27017"
     networks:
       - order-network
     volumes:
@@ -99,6 +89,28 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
     restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./docker/nginx
+      dockerfile: Dockerfile
+    container_name: nginx-gateway
+    ports:
+      - "8000:80"
+    networks:
+      - order-network
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./docker/nginx/gateway.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - command
+      - query
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
 
 
 networks:
